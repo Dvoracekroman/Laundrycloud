@@ -406,6 +406,72 @@
   }
   .size-badge.warn { background: var(--accent-bg); color: var(--accent); }
 
+  /* ========= SAVE PATH HINT ========= */
+  .save-path-hint {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 16px;
+    background: var(--blue-soft);
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--blue);
+    line-height: 1.3;
+  }
+  .save-path-hint svg { flex-shrink: 0; color: var(--blue); }
+  .save-path-hint strong {
+    color: var(--ink);
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+  }
+
+  /* ========= PREVIEW FOOTER ========= */
+  .preview-footer {
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .preview-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+    flex: 1;
+  }
+  .preview-actions .btn-primary {
+    padding: 10px 6px;
+    font-size: 13px;
+    gap: 5px;
+    min-width: 0;
+  }
+  .preview-actions .btn-primary span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .action-save {
+    background: linear-gradient(180deg, #64748B 0%, #475569 100%) !important;
+    box-shadow: 0 2px 8px rgba(71, 85, 105, 0.3) !important;
+  }
+  .action-email {
+    background: linear-gradient(180deg, var(--blue-bright) 0%, var(--blue) 100%) !important;
+    box-shadow: 0 2px 8px rgba(30, 64, 175, 0.3) !important;
+  }
+  .action-both {
+    /* uses default btn-success gradient */
+  }
+  @media (max-width: 480px) {
+    .preview-footer {
+      flex-direction: column;
+    }
+    .preview-actions {
+      order: 1;
+      width: 100%;
+    }
+    .preview-footer > .btn-secondary {
+      order: 2;
+      width: 100%;
+    }
+  }
+
   .spinner {
     width: 16px; height: 16px;
     border: 2px solid rgba(255,255,255,0.3);
@@ -749,15 +815,29 @@
       <span><strong id="preview-filename">protokol.pdf</strong></span>
       <span class="size-badge" id="preview-size">– kB</span>
     </div>
+    <div id="save-path-hint" class="save-path-hint">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <span>Doporučené uložení: <strong id="save-path-text">iCloud Drive › LaundryCloud › …</strong></span>
+    </div>
     <div class="modal-body no-padding" style="flex: 1; display: flex;">
       <iframe class="pdf-preview" id="pdf-preview" title="Náhled PDF"></iframe>
     </div>
-    <div class="modal-footer">
+    <div class="modal-footer preview-footer">
       <button class="btn-secondary" id="preview-back" type="button">Upravit</button>
-      <button class="btn-primary btn-success" id="preview-send" type="button">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-        Odeslat e-mailem
-      </button>
+      <div class="preview-actions">
+        <button class="btn-primary action-save" id="preview-save" type="button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          <span>Uložit</span>
+        </button>
+        <button class="btn-primary action-email" id="preview-email" type="button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          <span>E-mail</span>
+        </button>
+        <button class="btn-primary btn-success action-both" id="preview-both" type="button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Oboje</span>
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -1850,6 +1930,7 @@ async function showPreview() {
     sizeBadge.classList.toggle('warn', result.size > MAX_PDF_SIZE);
 
     hideLoading();
+    updateSavePathHint();
     document.getElementById('preview-modal').classList.add('show');
   } catch (err) {
     hideLoading();
@@ -1887,14 +1968,116 @@ document.getElementById('preview-back').onclick = () => {
   document.getElementById('preview-modal').classList.remove('show');
 };
 
-document.getElementById('preview-send').onclick = () => {
+// ------- Shared: save path hint by type -------
+function getSaveFolderHint() {
+  const type = PROTOCOL_TYPES.find(t => t.key === currentType);
+  const year = new Date().getFullYear();
+  const typeFolder = type ? type.label : 'Servis';
+  return {
+    full: `iCloud Drive › LaundryCloud › ${typeFolder} › ${year}`,
+    short: `LaundryCloud/${typeFolder}/${year}`,
+  };
+}
+
+function updateSavePathHint() {
+  const hint = getSaveFolderHint();
+  const el = document.getElementById('save-path-text');
+  if (el) el.textContent = hint.full;
+}
+
+// ------- Action: Uložit do iCloud (Save to Files) -------
+async function actionSave() {
+  if (!lastGeneratedBlob) {
+    toast('PDF nebylo vygenerováno', 'error');
+    return;
+  }
   document.getElementById('preview-modal').classList.remove('show');
-  // Prefill emails
+
+  const file = new File([lastGeneratedBlob], lastGeneratedFilename, { type: 'application/pdf' });
+  const hint = getSaveFolderHint();
+
+  // Prefer Web Share API with files — on iOS, "Save to Files" is in the share sheet
+  const shareData = { title: lastGeneratedFilename, files: [file] };
+  if (navigator.canShare && navigator.canShare(shareData)) {
+    try {
+      await navigator.share(shareData);
+      toast(`Uloženo. Cíl: ${hint.short}`, 'success', 4000);
+      askAfterSend();
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        // User cancelled share sheet — bring preview back
+        document.getElementById('preview-modal').classList.add('show');
+        return;
+      }
+      console.warn('Web Share failed:', err);
+    }
+  }
+
+  // Fallback: plain download
+  downloadBlob(lastGeneratedBlob, lastGeneratedFilename);
+  toast(`PDF staženo do Files. Ulož ručně do ${hint.short}`, 'success', 5000);
+  askAfterSend();
+}
+
+// ------- Action: E-mail (opens email modal) -------
+function actionEmail() {
+  document.getElementById('preview-modal').classList.remove('show');
   const s = loadSettings();
   document.getElementById('email_vlastni').value = s.email || '';
   document.getElementById('email_zakaznik').value = document.getElementById('kontakt_email').value || '';
+  // Remember we're in "email only" mode, not "both"
+  window._pendingBoth = false;
   document.getElementById('email-modal').classList.add('show');
-};
+}
+
+// ------- Action: Oboje (Save + Email) -------
+async function actionBoth() {
+  if (!lastGeneratedBlob) {
+    toast('PDF nebylo vygenerováno', 'error');
+    return;
+  }
+  document.getElementById('preview-modal').classList.remove('show');
+
+  const file = new File([lastGeneratedBlob], lastGeneratedFilename, { type: 'application/pdf' });
+  const hint = getSaveFolderHint();
+
+  // Step 1 — save to Files
+  const shareData = { title: lastGeneratedFilename, files: [file] };
+  if (navigator.canShare && navigator.canShare(shareData)) {
+    try {
+      await navigator.share(shareData);
+      toast(`Uloženo do ${hint.short}. Teď e-mail…`, 'success', 2500);
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        // User cancelled save — ask if they want to continue to email anyway
+        if (!confirm('Uložení přeskočeno. Pokračovat rovnou na e-mail?')) {
+          document.getElementById('preview-modal').classList.add('show');
+          return;
+        }
+      } else {
+        console.warn('Share save failed:', err);
+      }
+    }
+  } else {
+    // No native share — just download
+    downloadBlob(lastGeneratedBlob, lastGeneratedFilename);
+    toast(`PDF staženo. Cíl: ${hint.short}`, 'success', 2500);
+  }
+
+  // Step 2 — open email modal after a short delay (give iOS time to settle share sheet)
+  setTimeout(() => {
+    const s = loadSettings();
+    document.getElementById('email_vlastni').value = s.email || '';
+    document.getElementById('email_zakaznik').value = document.getElementById('kontakt_email').value || '';
+    window._pendingBoth = true;  // flag: already saved, email modal should not re-save
+    document.getElementById('email-modal').classList.add('show');
+  }, 500);
+}
+
+document.getElementById('preview-save').onclick = actionSave;
+document.getElementById('preview-email').onclick = actionEmail;
+document.getElementById('preview-both').onclick = actionBoth;
 
 // =========================================================================
 // EMAIL FLOW
