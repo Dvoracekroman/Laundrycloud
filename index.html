@@ -2111,7 +2111,7 @@ document.getElementById('email-send').onclick = async () => {
 
   const file = new File([lastGeneratedBlob], lastGeneratedFilename, { type: 'application/pdf' });
   const data = lastGeneratedData;
-  const subject = `Servisní protokol${data.protokol_cislo ? ' č. ' + data.protokol_cislo : ''} — ${data.zakaznik_nazev || ''}`;
+  const subject = buildEmailSubject(data);
   const body = buildEmailBody(data);
 
   document.getElementById('email-modal').classList.remove('show');
@@ -2181,26 +2181,74 @@ function askAfterSend() {
   }, 800);
 }
 
+function buildEmailSubject(data) {
+  const typeInfo = PROTOCOL_TYPES.find(t => t.key === (data._type || currentType));
+  const typeLabel = typeInfo ? typeInfo.label : 'Servisní protokol';
+  const parts = [typeLabel];
+  if (data.protokol_cislo) parts.push(data.protokol_cislo);
+  if (data.zakaznik_nazev) parts.push('– ' + data.zakaznik_nazev);
+  return parts.join(' ');
+}
+
 function buildEmailBody(data) {
-  const lines = [
-    'Dobrý den,', '',
-    'v příloze zasílám servisní protokol k provedenému zásahu.', '',
-    '— Shrnutí —',
-  ];
-  if (data.protokol_cislo) lines.push(`Číslo protokolu: ${data.protokol_cislo}`);
-  if (data.zakaznik_nazev) lines.push(`Zákazník: ${data.zakaznik_nazev}`);
-  if (data.stroj_vyrobce || data.stroj_typ) {
-    lines.push(`Stroj: ${[data.stroj_vyrobce, data.stroj_typ].filter(Boolean).join(' ')}`);
-  }
-  if (data.servis_datum) lines.push(`Datum servisu: ${isoToCzech(data.servis_datum)}`);
-  if (data.servis_technik) lines.push(`Technik: ${data.servis_technik}`);
+  const typeInfo = PROTOCOL_TYPES.find(t => t.key === (data._type || currentType));
+  const typeLabel = typeInfo ? typeInfo.label.toLowerCase() : 'servisní zásah';
+  const technik = (data.servis_technik || 'Roman Dvořáček').trim();
+  const settings = loadSettings();
+  const kontaktEmail = (settings.email || 'info@laundrycloud.cz').trim();
+
   const totalPhotos = photoStore.pred.length + photoStore.po.length + photoStore.obec.length;
-  if (totalPhotos > 0) lines.push(`Fotodokumentace: ${totalPhotos} ${totalPhotos === 1 ? 'fotka' : 'fotek'}`);
-  lines.push('', 'V případě dotazů mě neváhejte kontaktovat.', '',
-             'S pozdravem,',
-             data.servis_technik || 'Roman Dvořáček',
-             'Laundry Cloud s.r.o.');
-  return lines.join('\n');
+
+  // Build details block with proper line separator
+  // iOS Mail unfortunately sometimes collapses plain \n from share sheet;
+  // we use explicit bullets and double-newlines so the message reads well either way.
+  const L = []; // lines
+
+  // Greeting
+  L.push('Dobrý den,');
+  L.push('');
+  L.push(`v příloze zasílám ${typeLabel === 'předaný díl' ? 'protokol o předání dílu' : (typeLabel === 'revize' ? 'protokol o revizi' : (typeLabel === 'školení' ? 'protokol o školení' : (typeLabel === 'instalace' ? 'instalační protokol' : 'servisní protokol k provedenému zásahu')))}.`);
+  L.push('');
+
+  // Details section, compact and scannable
+  L.push('━━━━━━━━━━━━━━━━━━━━');
+  L.push('  SHRNUTÍ');
+  L.push('━━━━━━━━━━━━━━━━━━━━');
+
+  if (data.protokol_cislo) L.push(`• Číslo protokolu:  ${data.protokol_cislo}`);
+  if (data.zakaznik_nazev) L.push(`• Zákazník:  ${data.zakaznik_nazev}`);
+  if (data.misto_predani)  L.push(`• Místo:  ${data.misto_predani}`);
+  if (data.stroj_vyrobce || data.stroj_typ) {
+    L.push(`• Stroj:  ${[data.stroj_vyrobce, data.stroj_typ].filter(Boolean).join(' — ')}`);
+  }
+  if (data.stroj_vyr_cislo) L.push(`• Výrobní číslo:  ${data.stroj_vyr_cislo}`);
+  if (data.servis_datum)    L.push(`• Datum zásahu:  ${isoToCzech(data.servis_datum)}`);
+  if (data.servis_technik)  L.push(`• Technik:  ${data.servis_technik}`);
+  if (totalPhotos > 0)      L.push(`• Fotodokumentace:  ${totalPhotos} ${totalPhotos === 1 ? 'snímek' : (totalPhotos < 5 ? 'snímky' : 'snímků')}`);
+
+  L.push('');
+
+  // Revision notice — important reminder
+  L.push('Protokol má informativní charakter. Zákazník po servisním zásahu zajistí odbornou revizi dle platných předpisů.');
+  L.push('');
+
+  L.push('V případě dotazů mě prosím kontaktujte.');
+  L.push('');
+
+  // Signature — professional footer
+  L.push('S pozdravem,');
+  L.push('');
+  L.push(technik);
+  L.push('servisní technik');
+  L.push('');
+  L.push('─────────────────────');
+  L.push('Laundry Cloud s.r.o.');
+  L.push('Smart systems for commercial laundries');
+  L.push('Čajkovského 4275/46, 695 01 Hodonín');
+  L.push(`${kontaktEmail}  •  laundrycloud.cz`);
+  L.push('IČO 10704396  •  DIČ CZ10704396');
+
+  return L.join('\n');
 }
 
 // =========================================================================
