@@ -22,8 +22,8 @@
 
 <style>
   :root {
-    --navy: #0A1E3F; --navy-2: #0F2A55;
-    --blue: #1E40AF; --blue-bright: #3B82F6; --blue-soft: #EFF6FF;
+    --navy: #1E293B; --navy-2: #334155;
+    --blue: #2563EB; --blue-bright: #3B82F6; --blue-soft: #EFF6FF;
     --bg: #F7F8FA; --surface: #FFFFFF; --surface-2: #F9FAFB;
     --ink: #0F172A; --ink-dim: #475569; --ink-dimmer: #94A3B8;
     --border: #E2E8F0; --border-strong: #CBD5E1; --border-focus: #3B82F6;
@@ -439,6 +439,88 @@
     input, textarea, select { font-size: 16px !important; }
   }
   .helper-text { font-size: 12px; color: var(--ink-dimmer); margin: 0; line-height: 1.5; }
+
+  /* ========= TYPE PICKER (landing) ========= */
+  .type-picker {
+    max-width: 680px; margin: 0 auto;
+    padding: 24px 16px;
+    padding-bottom: calc(40px + env(safe-area-inset-bottom));
+  }
+  .type-picker-intro {
+    margin-bottom: 24px;
+    padding: 0 4px;
+  }
+  .type-picker-intro h1 {
+    font-size: 24px; font-weight: 700;
+    letter-spacing: -0.3px; color: var(--ink);
+    margin: 0 0 6px 0;
+  }
+  .type-picker-intro p {
+    font-size: 14px; color: var(--ink-dim); margin: 0;
+  }
+  .type-list { display: grid; gap: 10px; }
+  .type-card {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer; text-align: left;
+    font-family: inherit;
+    transition: all 0.15s;
+    box-shadow: var(--shadow-sm);
+    width: 100%;
+  }
+  .type-card:hover, .type-card:active {
+    border-color: var(--blue);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+  .type-card-icon {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    display: grid; place-items: center;
+    flex-shrink: 0;
+    background: var(--blue-soft);
+    color: var(--blue);
+  }
+  .type-card-body { flex: 1; min-width: 0; }
+  .type-card-title {
+    font-size: 15px; font-weight: 600;
+    color: var(--ink); margin: 0 0 2px 0;
+  }
+  .type-card-sub {
+    font-size: 12px; color: var(--ink-dim);
+    margin: 0;
+  }
+  .type-card-chevron {
+    color: var(--ink-dimmer);
+    flex-shrink: 0;
+  }
+  .type-card-counter {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-dim);
+    background: var(--surface-2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 8px;
+  }
+  .type-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    background: var(--blue-soft);
+    color: var(--blue);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 10px;
+    margin-left: 10px;
+    letter-spacing: 0.3px;
+  }
+  .wizard-view { display: none; }
+  .wizard-view.active { display: block; }
+  .type-picker.hidden { display: none; }
 </style>
 </head>
 <body>
@@ -450,17 +532,30 @@
       <div class="brand-name">LaundryCloud</div>
       <div class="brand-sub">Servisní protokol</div>
     </div>
+    <button class="header-icon-btn" id="btn-home" title="Zpět na výběr typu" style="display:none;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+    </button>
     <button class="header-icon-btn" id="btn-settings" title="Nastavení">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
     </button>
-    <button class="header-icon-btn" id="btn-reset-top" title="Nový protokol">
+    <button class="header-icon-btn" id="btn-reset-top" title="Nový protokol" style="display:none;">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
     </button>
   </div>
-  <div class="progress" id="progress"></div>
+  <div class="progress" id="progress" style="display:none;"></div>
 </header>
 
-<main>
+<!-- TYPE PICKER — landing screen -->
+<section class="type-picker" id="type-picker">
+  <div class="type-picker-intro">
+    <h1>Nový protokol</h1>
+    <p>Vyber typ protokolu, který chceš vystavit.</p>
+  </div>
+  <div class="type-list" id="type-list"></div>
+</section>
+
+<!-- WIZARD — hidden until user picks a type -->
+<main class="wizard-view" id="wizard-view">
   <section class="step-panel" data-step="1">
     <h2 class="step-title">Zákazník</h2>
     <p class="step-desc">Komu se protokol vystavuje a kde proběhlo předání.</p>
@@ -620,7 +715,7 @@
   </section>
 </main>
 
-<div class="action-bar">
+<div class="action-bar" id="action-bar" style="display:none;">
   <button class="btn-secondary" id="btn-prev" type="button">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
     Zpět
@@ -762,7 +857,50 @@ const EMBEDDED_FONT_BOLD_B64 = "AAEAAAARAQAABAAQR0RFRgkHCSEAALLsAAAAiEdQT1MABmdv
 const STORAGE_KEY = 'laundrycloud-protokol-draft-v3';
 const PHOTOS_KEY = 'laundrycloud-photos-v3';
 const SETTINGS_KEY = 'laundrycloud-settings-v1';
+const COUNTERS_KEY = 'laundrycloud-counters-v1';
 const MAX_PDF_SIZE = 2 * 1024 * 1024;  // 2 MB
+
+// Protocol types — each has prefix, label, description, and SVG icon
+const PROTOCOL_TYPES = [
+  {
+    key: 'OP',
+    label: 'Oprava',
+    title: 'SERVISNÍ PROTOKOL — OPRAVA',
+    desc: 'Odstranění závady, servisní zásah',
+    icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>',
+  },
+  {
+    key: 'RE',
+    label: 'Revize',
+    title: 'PROTOKOL O REVIZI',
+    desc: 'Odborná revize, kontrola zařízení',
+    icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>',
+  },
+  {
+    key: 'PD',
+    label: 'Předaný díl',
+    title: 'PROTOKOL O PŘEDÁNÍ DÍLU',
+    desc: 'Předání náhradního nebo spotřebního dílu',
+    icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
+  },
+  {
+    key: 'SK',
+    label: 'Školení',
+    title: 'PROTOKOL O ŠKOLENÍ',
+    desc: 'Zaškolení obsluhy, bezpečnostní školení',
+    icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>',
+  },
+  {
+    key: 'IN',
+    label: 'Instalace',
+    title: 'INSTALAČNÍ PROTOKOL',
+    desc: 'Montáž a uvedení do provozu',
+    icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+  },
+];
+
+// Current active type — set when user picks from picker
+let currentType = null;
 
 const STEPS = [
   { id: 1, label: 'Zákazník' },
@@ -850,6 +988,20 @@ function renderProgress() {
     p.appendChild(chip);
   }
 }
+function updateBrandSubtitle() {
+  const sub = document.querySelector('.brand-sub');
+  if (!sub) return;
+  const type = PROTOCOL_TYPES.find(t => t.key === currentType);
+  const cislo = document.getElementById('protokol_cislo')?.value;
+  if (type && cislo) {
+    sub.textContent = `${type.label.toUpperCase()} · ${cislo}`;
+  } else if (type) {
+    sub.textContent = type.label.toUpperCase();
+  } else {
+    sub.textContent = 'Servisní protokol';
+  }
+}
+
 function goToStep(n) {
   if (n < 1 || n > STEPS.length) return;
   currentStep = n;
@@ -858,6 +1010,7 @@ function goToStep(n) {
   });
   renderProgress();
   updateActionBar();
+  updateBrandSubtitle();
   setTimeout(() => {
     const active = document.querySelector('.step-chip.active');
     if (active) active.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
@@ -1158,7 +1311,7 @@ class SignaturePad {
     const octx = out.getContext('2d');
     octx.scale(dpr, dpr);
     octx.lineCap = 'round'; octx.lineJoin = 'round';
-    octx.strokeStyle = '#0A1E3F'; octx.lineWidth = 2.2;
+    octx.strokeStyle = '#1E293B'; octx.lineWidth = 2.2;
     for (const stroke of this.strokes) {
       if (!stroke.length) continue;
       octx.beginPath();
@@ -1199,6 +1352,7 @@ function collect() {
   });
   data._signature = sigpad ? sigpad.serialize() : [];
   data._step = currentStep;
+  data._type = currentType;
   return data;
 }
 
@@ -1272,10 +1426,15 @@ document.getElementById('settings-save').onclick = () => {
 };
 
 document.getElementById('btn-reset-top').onclick = () => {
-  if (!confirm('Zahodit rozepsaný protokol (včetně fotek) a začít nový?')) return;
+  if (!confirm('Zahodit rozepsaný protokol (včetně fotek) a vrátit se na výběr typu?')) return;
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(PHOTOS_KEY);
-  location.reload();
+  for (const cat of ['pred', 'po', 'obec']) photoStore[cat] = [];
+  PHOTO_CATS.forEach(c => renderPhotoGrid(c.key));
+  if (sigpad) sigpad.clear();
+  currentType = null;
+  currentStep = 1;
+  showTypePicker();
 };
 
 // =========================================================================
@@ -1389,6 +1548,7 @@ async function generatePdfBlob(targetMaxSize = MAX_PDF_SIZE) {
       try {
         const field = form.getTextField(name);
         field.setText(String(value));
+        field.setFontSize(9);
         field.updateAppearances(font);
       } catch (e) { /* field missing */ }
     };
@@ -1445,13 +1605,56 @@ async function generatePdfBlob(targetMaxSize = MAX_PDF_SIZE) {
       const pngBytes = await fetch(sig.dataUrl).then(r => r.arrayBuffer());
       const pngImage = await pdfDoc.embedPng(pngBytes);
       const page = pdfDoc.getPages()[0];
-      const sigBoxX = 315, sigBoxY = 155, sigBoxW = 200, sigBoxH = 45;
+      // Signature box in "Za zákazníka" area: below name field (y=73+), above signature line (y=46)
+      const sigBoxX = 320, sigBoxY = 48, sigBoxW = 210, sigBoxH = 22;
       const aspect = sig.width / sig.height;
       let drawW = sigBoxW, drawH = drawW / aspect;
       if (drawH > sigBoxH) { drawH = sigBoxH; drawW = drawH * aspect; }
       const drawX = sigBoxX + (sigBoxW - drawW) / 2;
       const drawY = sigBoxY + (sigBoxH - drawH) / 2;
       page.drawImage(pngImage, { x: drawX, y: drawY, width: drawW, height: drawH });
+    }
+
+    // --- Override title/subtitle with type-specific text ---
+    // Template has "SERVISNÍ PROTOKOL" at top-right; cover it and print type title
+    {
+      const page = pdfDoc.getPages()[0];
+      const typeInfo = PROTOCOL_TYPES.find(t => t.key === (data._type || currentType)) || PROTOCOL_TYPES[0];
+      const NAVY_TITLE = rgb(0.118, 0.161, 0.231);  // matches UI --navy
+      const INK_ON_NAVY = rgb(1, 1, 1);
+      const INK_DIM_ON_NAVY = rgb(0.58, 0.65, 0.72);
+
+      // Cover original title area (navy band is 0..~60 from top of page = 782..842 in pdf coords)
+      // "SERVISNÍ PROTOKOL" is at y≈802..815, subtitle at y≈792..800
+      // Just repaint a navy rectangle over the right half of the band
+      page.drawRectangle({
+        x: 260, y: 788, width: 305, height: 30,
+        color: NAVY_TITLE,
+      });
+
+      // Draw new title — measure width and right-align
+      const titleText = typeInfo.title;
+      const titleSize = 13;
+      const titleWidth = fontBold.widthOfTextAtSize(titleText, titleSize);
+      page.drawText(titleText, {
+        x: 560 - titleWidth,
+        y: 806,
+        size: titleSize,
+        font: fontBold,
+        color: INK_ON_NAVY,
+      });
+
+      // Subtitle (static)
+      const subText = 'LaundryCloud · servisní dokumentace';
+      const subSize = 8;
+      const subWidth = font.widthOfTextAtSize(subText, subSize);
+      page.drawText(subText, {
+        x: 560 - subWidth,
+        y: 794,
+        size: subSize,
+        font: font,
+        color: INK_DIM_ON_NAVY,
+      });
     }
 
     form.flatten();
@@ -1477,8 +1680,8 @@ async function generatePdfBlob(targetMaxSize = MAX_PDF_SIZE) {
 }
 
 async function renderPhotoPages(pdfDoc, font, fontBold, { maxDim, quality }, onProgress) {
-  const NAVY = rgb(0.039, 0.118, 0.247);   // #0A1E3F
-  const BLUE = rgb(0.118, 0.251, 0.686);   // #1E40AF
+  const NAVY = rgb(0.118, 0.161, 0.231);   // #1E293B — soft slate navy
+  const BLUE = rgb(0.145, 0.388, 0.922);   // #2563EB — lighter blue accent
   const INK_DIM = rgb(0.278, 0.333, 0.412);
   const BORDER = rgb(0.796, 0.835, 0.882);
 
@@ -1616,7 +1819,9 @@ function buildFilename(data) {
   const datum = (data.datum_predani || todayISO()).replace(/-/g, '');
   const zak = (data.zakaznik_nazev || 'zakaznik').replace(/[^\p{L}\p{N}]+/gu, '_').substring(0, 30);
   const cislo = (data.protokol_cislo || '').replace(/[^\p{L}\p{N}]+/gu, '_');
-  const parts = ['Servisni_protokol', datum, zak];
+  const typeInfo = PROTOCOL_TYPES.find(t => t.key === (data._type || currentType));
+  const typeSlug = typeInfo ? typeInfo.label.replace(/[^\p{L}\p{N}]+/gu, '_') : 'Protokol';
+  const parts = [typeSlug, datum, zak];
   if (cislo) parts.push(cislo);
   return parts.join('_') + '.pdf';
 }
@@ -1760,11 +1965,35 @@ function downloadBlob(blob, filename) {
 }
 
 function askAfterSend() {
+  // Increment counter for this type (once per successful send)
+  const data = lastGeneratedData;
+  if (data && data._type && !data._counterIncremented) {
+    // Extract number from protokol_cislo (e.g. "OP-2026-007" -> 7)
+    const m = /-(\d+)$/.exec(data.protokol_cislo || '');
+    if (m) {
+      const usedNum = parseInt(m[1], 10);
+      const counters = loadCounters();
+      const year = new Date().getFullYear();
+      const slotKey = `${data._type}-${year}`;
+      // Only bump if this number is >= current counter (avoid double-increment on re-send)
+      if (usedNum > (counters[slotKey] || 0)) {
+        counters[slotKey] = usedNum;
+        saveCounters(counters);
+      }
+    }
+    data._counterIncremented = true;
+  }
+
   setTimeout(() => {
-    if (confirm('Protokol odeslán. Zahodit data a začít nový?')) {
+    if (confirm('Protokol odeslán. Zahodit data a vrátit se na výběr typu?')) {
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem(PHOTOS_KEY);
-      location.reload();
+      // Clear in-memory state
+      for (const cat of ['pred', 'po', 'obec']) photoStore[cat] = [];
+      if (sigpad) sigpad.clear();
+      currentType = null;
+      currentStep = 1;
+      showTypePicker();
     }
   }, 800);
 }
@@ -1792,16 +2021,221 @@ function buildEmailBody(data) {
 }
 
 // =========================================================================
+// TYPE PICKER & COUNTERS
+// =========================================================================
+function loadCounters() {
+  try {
+    const raw = localStorage.getItem(COUNTERS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+function saveCounters(c) {
+  localStorage.setItem(COUNTERS_KEY, JSON.stringify(c));
+}
+function getNextNumber(typeKey) {
+  const counters = loadCounters();
+  const year = new Date().getFullYear();
+  const slot = counters[`${typeKey}-${year}`] || 0;
+  return slot + 1;
+}
+function formatProtocolNumber(typeKey, num) {
+  const year = new Date().getFullYear();
+  return `${typeKey}-${year}-${String(num).padStart(3, '0')}`;
+}
+function incrementCounter(typeKey) {
+  const counters = loadCounters();
+  const year = new Date().getFullYear();
+  const slotKey = `${typeKey}-${year}`;
+  counters[slotKey] = (counters[slotKey] || 0) + 1;
+  saveCounters(counters);
+  return counters[slotKey];
+}
+
+function renderTypePicker() {
+  const list = document.getElementById('type-list');
+  list.innerHTML = '';
+  const counters = loadCounters();
+  const year = new Date().getFullYear();
+
+  for (const t of PROTOCOL_TYPES) {
+    const used = counters[`${t.key}-${year}`] || 0;
+    const next = used + 1;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'type-card';
+    btn.innerHTML = `
+      <div class="type-card-icon">${t.icon}</div>
+      <div class="type-card-body">
+        <div class="type-card-title">${t.label}<span class="type-badge">${t.key}-${year}-${String(next).padStart(3,'0')}</span></div>
+        <div class="type-card-sub">${t.desc}</div>
+      </div>
+      <div class="type-card-chevron">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+    `;
+    btn.onclick = () => startNewProtocol(t.key);
+    list.appendChild(btn);
+  }
+
+  // Resume draft notice (if user has unfinished protocol)
+  const draft = localStorage.getItem(STORAGE_KEY);
+  if (draft) {
+    try {
+      const d = JSON.parse(draft);
+      if (d._type && d.protokol_cislo) {
+        const resumeCard = document.createElement('button');
+        resumeCard.type = 'button';
+        resumeCard.className = 'type-card';
+        resumeCard.style.borderColor = 'var(--accent)';
+        resumeCard.style.background = 'var(--accent-bg)';
+        resumeCard.innerHTML = `
+          <div class="type-card-icon" style="background:rgba(217,119,6,0.15); color:var(--accent);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="type-card-body">
+            <div class="type-card-title" style="color:#78350F;">Pokračovat v rozepsaném</div>
+            <div class="type-card-sub" style="color:#92400E;">${d.protokol_cislo} · ${d.zakaznik_nazev || '(bez jména)'}</div>
+          </div>
+          <div class="type-card-chevron" style="color:var(--accent);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+        `;
+        resumeCard.onclick = () => resumeProtocol();
+        list.insertBefore(resumeCard, list.firstChild);
+      }
+    } catch { /* ignore */ }
+  }
+}
+
+function startNewProtocol(typeKey) {
+  const type = PROTOCOL_TYPES.find(t => t.key === typeKey);
+  if (!type) return;
+
+  // If there's a different-type draft, confirm
+  const draftRaw = localStorage.getItem(STORAGE_KEY);
+  if (draftRaw) {
+    try {
+      const d = JSON.parse(draftRaw);
+      if (d._type && d._type !== typeKey && d.protokol_cislo) {
+        if (!confirm(`Máš rozepsaný ${d.protokol_cislo}. Zahodit ho a začít nový ${type.label.toLowerCase()}?`)) return;
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(PHOTOS_KEY);
+      } else if (d._type === typeKey && d.protokol_cislo) {
+        // Resume same-type draft
+        resumeProtocol();
+        return;
+      }
+    } catch { /* ignore */ }
+  }
+
+  currentType = typeKey;
+  const nextNum = getNextNumber(typeKey);
+  const protocolNumber = formatProtocolNumber(typeKey, nextNum);
+
+  // Clear photos for new protocol
+  for (const cat of ['pred', 'po', 'obec']) photoStore[cat] = [];
+  savePhotos();
+  PHOTO_CATS.forEach(c => renderPhotoGrid(c.key));
+
+  // Clear sig pad
+  if (sigpad) sigpad.clear();
+
+  // Reset form to defaults (we'll init defaults + set the number)
+  currentStep = 1;
+
+  // Clear all form values
+  for (const id of ALL_FIELD_IDS) {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  }
+  document.getElementById('sk-ano').checked = true;
+  document.getElementById('dily-list').innerHTML = '';
+  document.getElementById('osoby-list').innerHTML = '';
+
+  // Set protocol number and today's dates
+  document.getElementById('protokol_cislo').value = protocolNumber;
+  initDefaults();
+  applySettings();
+
+  showWizard();
+  save();
+}
+
+function resumeProtocol() {
+  // Load everything from draft as before
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return;
+  try {
+    const data = JSON.parse(raw);
+    currentType = data._type || 'OP';  // fallback for legacy drafts
+
+    for (const id of ALL_FIELD_IDS) {
+      const el = document.getElementById(id);
+      if (el && data[id] != null) el.value = data[id];
+    }
+    if (data.skoleni === 'ne') document.getElementById('sk-ne').checked = true;
+    else document.getElementById('sk-ano').checked = true;
+
+    document.getElementById('dily-list').innerHTML = '';
+    document.getElementById('osoby-list').innerHTML = '';
+    if (Array.isArray(data.dily)) data.dily.forEach(d => renderDil(d));
+    if (Array.isArray(data.osoby)) data.osoby.forEach(o => renderOsoba(o));
+
+    if (data._step >= 1 && data._step <= STEPS.length) currentStep = data._step;
+    setTimeout(() => sigpad && sigpad.restore(data._signature), 100);
+
+    showWizard();
+  } catch (e) {
+    console.error(e);
+    toast('Nepodařilo se obnovit protokol', 'error');
+  }
+}
+
+function showTypePicker() {
+  document.getElementById('type-picker').classList.remove('hidden');
+  document.getElementById('wizard-view').classList.remove('active');
+  document.getElementById('progress').style.display = 'none';
+  document.getElementById('action-bar').style.display = 'none';
+  document.getElementById('btn-home').style.display = 'none';
+  document.getElementById('btn-reset-top').style.display = 'none';
+  renderTypePicker();
+}
+
+function showWizard() {
+  document.getElementById('type-picker').classList.add('hidden');
+  document.getElementById('wizard-view').classList.add('active');
+  document.getElementById('progress').style.display = 'flex';
+  document.getElementById('action-bar').style.display = 'flex';
+  document.getElementById('btn-home').style.display = 'grid';
+  document.getElementById('btn-reset-top').style.display = 'grid';
+
+  // Update header subtitle to show current type
+  const type = PROTOCOL_TYPES.find(t => t.key === currentType);
+  if (type) {
+    const sub = document.querySelector('.brand-sub');
+    if (sub) sub.textContent = type.label.toUpperCase() + ' · ' + (document.getElementById('protokol_cislo').value || '');
+  }
+
+  goToStep(currentStep);
+}
+
+// =========================================================================
 // INIT
 // =========================================================================
 window.addEventListener('DOMContentLoaded', () => {
   sigpad = new SignaturePad(document.getElementById('sigpad'));
   restorePhotos();
   PHOTO_CATS.forEach(c => renderPhotoGrid(c.key));
-  restore();
-  initDefaults();
-  applySettings();
-  goToStep(currentStep);
+
+  // Always start at type picker
+  showTypePicker();
+
+  // Wire home button — returns to type picker
+  document.getElementById('btn-home').onclick = () => {
+    // Don't lose draft data; just go home, they can resume from picker
+    save();
+    showTypePicker();
+  };
 
   // Pre-warm resources
   setTimeout(() => {
