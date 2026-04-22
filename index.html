@@ -1742,16 +1742,47 @@ async function generatePdfBlob(targetMaxSize = MAX_PDF_SIZE) {
     const fontBold = await pdfDoc.embedFont(fontBytesBold, { subset: true });
 
     const form = pdfDoc.getForm();
+    let _fillStats = { ok: 0, skip: 0, fail: 0 };
+
+    // Before any fill: rewrite each text field's default appearance (DA) string
+    // to reference our embedded Carlito font. Otherwise pdf-lib tries to render
+    // Czech characters with Helvetica (which has no diacritics) and errors.
+    const customFontName = font.name;  // pdf-lib internal ref name
+    try {
+      for (const field of form.getFields()) {
+        const ftype = field.constructor.name;
+        if (ftype.includes('TextField')) {
+          try {
+            // Access the internal AcroField's dictionary to set /DA
+            const acroField = field.acroField;
+            if (acroField && acroField.dict) {
+              const { PDFName, PDFString } = PDFLib;
+              const daString = `/${customFontName} 9 Tf 0 0 0 rg`;
+              acroField.dict.set(PDFName.of('DA'), PDFString.of(daString));
+            }
+          } catch (e) { /* field may not expose acroField */ }
+        }
+      }
+    } catch (e) {
+      console.warn('DA patch failed:', e.message);
+    }
 
     const setText = (name, value, fontSize = 9) => {
-      if (value == null || value === '') return;
+      if (value == null || value === '') { _fillStats.skip++; return; }
       try {
         const field = form.getTextField(name);
-        // Set font size FIRST (must be before setText for multiline)
-        field.setFontSize(fontSize);
         field.setText(String(value));
-        field.updateAppearances(font);
-      } catch (e) { /* field missing */ }
+        try {
+          field.updateAppearances(font);
+          _fillStats.ok++;
+        } catch (e) {
+          console.warn(`updateAppearances failed for ${name}:`, e.message);
+          _fillStats.fail++;
+        }
+      } catch (e) {
+        console.warn(`setText failed for ${name}:`, e.message);
+        _fillStats.fail++;
+      }
     };
     const setCheckbox = (name, checked) => {
       try {
@@ -1881,6 +1912,11 @@ async function generatePdfBlob(targetMaxSize = MAX_PDF_SIZE) {
         font: font,
         color: INK_DIM_ON_NAVY,
       });
+    }
+
+    console.log(`Fill stats: ${_fillStats.ok} filled, ${_fillStats.skip} empty, ${_fillStats.fail} failed`);
+    if (_fillStats.ok === 0 && _fillStats.fail > 0) {
+      toast('PDF: nepodařilo se vyplnit pole. Zkontroluj konzoli.', 'error', 5000);
     }
 
     form.flatten();
